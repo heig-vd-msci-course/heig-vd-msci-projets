@@ -141,6 +141,25 @@
       }
     }
 
+    // Après deux parties perdues, retour au cours
+    const COURSE_URL = "https://heig-vd-msci-course.github.io/heig-vd-msci-course/programme/mercredi/matin/";
+    const MAX_LOSSES = 2;
+
+    function countLoss(key) {
+      let losses = 1;
+      try {
+        losses = (Number(localStorage.getItem(key)) || 0) + 1;
+        localStorage.setItem(key, String(losses >= MAX_LOSSES ? 0 : losses));
+      } catch (e) {
+        // Navigation privée : le compteur n'est pas gardé
+      }
+      return losses;
+    }
+
+    function backToCourse() {
+      setTimeout(() => { window.location.href = COURSE_URL; }, 2000);
+    }
+
     function rand(min, max) {
       return min + Math.random() * (max - min);
     }
@@ -608,6 +627,12 @@
         "Score : " + state.score + (record ? " (nouveau record !)" : " · Record : " + state.best) +
         ". M. Guidoux rend la catapulte demain. Peut-être.";
       document.getElementById("end").hidden = false;
+      if (countLoss("capsules-losses") >= MAX_LOSSES) {
+        document.getElementById("endText").textContent += " Deux parties perdues : retour au cours.";
+        document.getElementById("againBtn").hidden = true;
+        backToCourse();
+        return;
+      }
       document.getElementById("againBtn").focus();
     }
 

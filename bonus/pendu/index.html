@@ -127,6 +127,28 @@
       }
     }
 
+    // Après deux parties perdues, retour au cours
+    const COURSE_URL = "https://heig-vd-msci-course.github.io/heig-vd-msci-course/programme/mercredi/matin/";
+    const MAX_LOSSES = 2;
+
+    function countLoss(key) {
+      let losses = 1;
+      try {
+        losses = (Number(localStorage.getItem(key)) || 0) + 1;
+        localStorage.setItem(key, String(losses >= MAX_LOSSES ? 0 : losses));
+      } catch (e) {
+        // Navigation privée : le compteur n'est pas gardé
+      }
+      return losses;
+    }
+
+    let leaving = false;
+
+    function backToCourse() {
+      leaving = true;
+      setTimeout(() => { window.location.href = COURSE_URL; }, 2000);
+    }
+
     function isLetter(ch) {
       return ch >= "A" && ch <= "Z";
     }
@@ -213,6 +235,13 @@
         stats.streak = 0;
         messageEl.textContent = "Perdu ! Le mot était affiché ci-dessus.";
         messageEl.className = "message lose";
+        if (countLoss("pendu-losses") >= MAX_LOSSES) {
+          messageEl.textContent += " Deux parties perdues : retour au cours.";
+          saveStats();
+          render();
+          backToCourse();
+          return;
+        }
       }
       if (over) {
         saveStats();
@@ -239,7 +268,7 @@
       const letter = event.key.toUpperCase();
       if (letter.length === 1 && isLetter(letter)) {
         guess(letter);
-      } else if (event.key === "Enter" && over && event.target !== againBtn) {
+      } else if (event.key === "Enter" && over && !leaving && event.target !== againBtn) {
         // Sur le bouton, Entrée déclenche déjà son clic
         newGame();
       }
