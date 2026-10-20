@@ -1,1 +1,67 @@
-{}
+{
+  "banane": {
+    "team": "Banane",
+    "title": "Le jeu des allumettes",
+    "description": "La joueuse qui prend la dernière allumette a perdu"
+  },
+  "citron": {
+    "team": "Citron",
+    "title": "jeux des allumettes",
+    "description": "un jeux ou vous pouvez enlever des allumette et le but est de pas avoir la dernière"
+  },
+  "coco": {
+    "team": "Coco",
+    "title": "Jeux des allumettes",
+    "description": "Nous avons ajouté quelques modifications sur l'aspect du jeu."
+  },
+  "fraise": {
+    "team": "Fraise",
+    "title": "Jeu des allumettes",
+    "description": "Jeu d'allumettes thème fraise"
+  },
+  "myrtille": {
+    "team": "Myrtille",
+    "title": "Jeu des allumettes",
+    "description": "Jeu des allumettes - choix entre prendre 1, 2 ou 3 allumettes, objectif : ne pas ramasser la dernière allumette"
+  },
+  "orange": {
+    "team": "Orange",
+    "title": "Jeux des allumettes",
+    "description": "tirer les allumettes et ne pas prendre la dernière"
+  },
+  "peche": {
+    "team": "Pêche",
+    "title": "Jeu des allumettes",
+    "description": "thème orange, allumettes avec manche en forme de cœur."
+  },
+  "pomme": {
+    "team": "Pomme",
+    "title": "Jeu des allumettes",
+    "description": "Un jeu simple et ludique."
+  },
+  "raisin": {
+    "team": "Raisin",
+    "title": "Jeu des allumettes",
+    "description": "Le joueur/La joueuse qui prend la dernière allumette a perdu."
+  },
+  "ananas": {
+    "team": "Ananas",
+    "title": "Jeu des allumettes",
+    "description": ""
+  },
+  "cerise": {
+    "team": "Cerise",
+    "title": "Jeu des allumettes",
+    "description": ""
+  },
+  "kiwi": {
+    "team": "Kiwi",
+    "title": "Jeu des allumettes",
+    "description": ""
+  },
+  "poire": {
+    "team": "Poire",
+    "title": "Jeu des allumettes",
+    "description": ""
+  }
+}

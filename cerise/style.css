@@ -1,0 +1,176 @@
+* {
+box-sizing: border-box;
+}
+body {
+margin: 0;
+min-height: 100vh;
+padding: 35px 15px;
+font-family: Arial, Helvetica, sans-serif;
+text-align: center;
+color: #54243a;
+background: linear-gradient(135deg, #fff0f5, #ffe0eb);
+display: flex;
+flex-direction: column;
+align-items: center;
+}
+/* ===== TITRES ===== */
+h1 {
+margin: 10px 0;
+color: #c2185b;
+font-size: 2.4rem;
+}
+h3 {
+margin: 5px 0 25px;
+padding: 9px 22px;
+color: #a3154b;
+background: #ffd1e1;
+border-radius: 25px;
+font-size: 1.1rem;
+}
+/* ===== MESSAGE ===== */
+#message {
+width: min(100%, 450px);
+padding: 15px;
+margin: 12px 0;
+color: #c2185b;
+background: white;
+border: 2px solid #f3a4c0;
+border-radius: 14px;
+font-size: 1.15rem;
+font-weight: bold;
+box-shadow: 0 5px 15px #9d285018;
+}
+/* ===== COMPTEUR ===== */
+p {
+font-size: 1.05rem;
+}
+#compteur {
+display: inline-block;
+min-width: 35px;
+padding: 5px 10px;
+color: white;
+background: #c2185b;
+border-radius: 9px;
+font-weight: bold;
+}
+/* ===== ZONE DES ALLUMETTES ===== */
+#allumettes {
+width: min(100%, 600px);
+min-height: 100px;
+display: flex;
+flex-wrap: wrap;
+justify-content: center;
+align-items: center;
+gap: 10px;
+padding: 25px 15px;
+margin: 15px 0 25px;
+background: white;
+border: 2px solid #f5bfd2;
+border-radius: 18px;
+box-shadow: 0 8px 20px #9d285018;
+}
+/* ===== APPARENCE DES ALLUMETTES ===== */
+.allumette {
+position: relative;
+display: inline-block;
+flex: 0 0 9px;
+width: 9px;
+height: 45px;
+margin: 5px 3px;
+border-radius: 3px;
+background: linear-gradient(
+to right,
+#c58a45,
+#f6d49b,
+#d6a05d
+);
+box-shadow: 1px 2px 3px #00000025;
+}
+/* Tête rouge */
+.allumette::before {
+content: "";
+position: absolute;
+top: -7px;
+left: -1px;
+width: 11px;
+height: 12px;
+border-radius: 50% 50% 40% 40%;
+background: linear-gradient(135deg, #ff6b78, #c2182b);
+}
+
+#tas {
+display: flex;
+flex-wrap: wrap;
+justify-content: center;
+gap: 10px;
+margin: 10px 0;
+}
+button {
+padding: 12px 18px;
+border: none;
+border-radius: 12px;
+background: linear-gradient(135deg, #ec407a, #c2185b);
+color: white;
+font-size: 0.95rem;
+font-weight: bold;
+cursor: pointer;
+box-shadow: 0 4px 8px #c2185b25;
+transition: 0.2s ease;
+}
+button:hover:not(:disabled) {
+transform: translateY(-2px);
+box-shadow: 0 7px 13px #c2185b35;
+background: linear-gradient(135deg, #f06292, #ad1457);
+}
+button:active:not(:disabled) {
+transform: scale(0.97);
+}
+button:disabled {
+opacity: 0.45;
+cursor: not-allowed;
+}
+
+#rejouer {
+margin-top: 18px;
+padding: 12px 28px;
+color: #c2185b;
+background: white;
+border: 2px solid #c2185b;
+box-shadow: none;
+}
+#rejouer:hover {
+color: white;
+background: #c2185b;
+}
+
+button:focus-visible {
+outline: 3px solid #7b1745;
+outline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+body {
+padding: 25px 12px;
+}
+h1 {
+font-size: 1.8rem;
+}
+#allumettes {
+padding: 20px 8px;
+gap: 6px;
+}
+.allumette {
+flex-basis: 7px;
+width: 7px;
+height: 38px;
+margin: 5px 2px;
+}
+.allumette::before {
+width: 9px;
+height: 10px;
+}
+button {
+padding: 11px 13px;
+font-size: 0.85rem;
+}
+}

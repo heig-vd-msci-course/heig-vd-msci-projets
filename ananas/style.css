@@ -1,0 +1,28 @@
+.allumette {
+display: inline-block;
+width: 8px;
+height: 60px;
+margin: 6px;
+background-color: burlywood;
+border-top: 14px solid crimson;
+border-radius: 6px 6px 2px 2px;
+}
+h1 {color: yellowgreen}
+body {background-color: lightyellow}
+button {background-color: yellowgreen;
+color: deeppink;
+border-radius: 6px;
+cursor: pointer}
+.parent {
+text-align: center;
+}
+body {
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+min-height: 100vh;
+margin: 0;
+text-align: center;
+font-family: Helvetic;
+}

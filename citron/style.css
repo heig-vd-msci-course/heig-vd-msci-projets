@@ -1,0 +1,51 @@
+body {
+font-family: Arial, sans-serif;
+text-align: center;
+background-color: #fdf6e3;
+}
+
+h1 {
+color: crimson;
+}
+
+#equipe {
+font-style: italic;
+}
+
+#message {
+font-weight: bold;
+font-size: 22px;
+}
+
+button {
+padding: 10px 14px;
+margin: 4px;
+border: none;
+border-radius: 6px;
+background-color: crimson;
+color: white;
+cursor: pointer;
+}
+
+button:disabled {
+background-color: #bbb;
+cursor: not-allowed;
+}
+
+#recommencer {
+background-color: #333;
+}
+
+#tas {
+margin-top: 30px;
+}
+
+.allumette {
+display: inline-block;
+width: 8px;
+height: 60px;
+margin: 0 4px;
+background-color: burlywood;
+border-top: 14px solid crimson;
+border-radius: 6px 6px 2px 2px;
+}

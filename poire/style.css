@@ -1,0 +1,59 @@
+.allumette {
+display: inline-block;
+width: 8px;
+height: 60px;
+margin: 0 4px;
+background-color: burlywood;
+border-top: 14px solid crimson;
+border-radius: 6px 6px 2px 2px;
+}
+
+body {
+font family: sans serif;
+background-color: pink;
+max-width: 700px;
+margin: 0 auto;
+padding: 16px;
+text-align: center;
+}
+h1 {
+font-weight: bold;
+color: purple;
+margin-bottom: 0;
+
+}
+.equipe{
+color:gray;
+margin-top: 4px;
+}
+
+#message {
+font-size: 22px;
+font-weight: bold;
+}
+
+#tas {
+min-height: 80px;
+margin: 16px =;
+}
+
+.allumette {
+display: inline-block;
+width: 8px;
+height: 60px;
+margin: 0 4px;
+background-color: burlywood;
+border-top: 14px solid crimson;
+border-radius: 6px 6px 2px 2px;
+}
+
+button {
+font-size: 18px;
+padding: 8px 16px;
+margin: 4px;
+border: none;
+border-radius: 50px;
+background-color: darkpink;
+color: white;
+cursor: pointer;
+}

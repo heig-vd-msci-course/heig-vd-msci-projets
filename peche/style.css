@@ -1,0 +1,87 @@
+body {
+background-color: black;
+font-family: Arial, sans-serif;
+color: #FFA726;
+text-align: center;
+margin: 0;
+}
+h1 {
+color: white;
+margin-bottom: 0;
+font-family: Arial;
+
+}
+.carte {
+background-color: white;
+border: 3px;
+border-radius: 30px;
+padding: 35px 20px;
+margin: 20px;
+overflow: hidden;
+}
+.equipe {
+color: graytext;
+margin-top: 7px;
+}
+
+#message {
+font-size: 20px;
+font-weight: bold;
+margin-top: 10px;
+}
+
+#tas {
+min-height: 80px;
+margin: 16px 0;
+}
+
+.allumette {
+display: inline-block;
+width: 8px;
+height: 60px;
+margin: 0 12px;
+background-color: burlywood;
+border-radius: 2px;
+position: relative;
+}
+
+.allumette::before {
+content: "";
+position: absolute;
+
+width: 25px;
+height: 25px;
+
+background-image: url("https://i.pinimg.com/736x/38/bb/7d/38bb7d85275500440f9aea8960d16252.jpg");
+
+background-size: contain;
+background-repeat: no-repeat;
+background-position: center;
+
+top: -20px;
+left: 50%;
+transform: translateX(-50%);
+}
+
+button {
+font-size: 18px;
+padding: 8px 16px;
+margin: 4px;
+border: none;
+border-radius: 8px;
+background-color: #FF9800;
+color: white;
+cursor: pointer;
+}
+
+button:disabled {
+background-color: lightgray;
+cursor: not-allowed;
+}
+
+#rejouer {
+margin-top: 25px;
+background-color: #FFCC80;
+color: white;
+width: 100%;
+}

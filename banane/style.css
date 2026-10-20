@@ -1,0 +1,15 @@
+h1 { color: deeppink}
+body { font-family: baskerville;
+background: black }
+p { color: white }
+button{ font-family: baskerville
+}
+.allumette {
+display: inline-block;
+width: 8px;
+height: 60px;
+margin: 0 4px;
+background-color: burlywood;
+border-top: 14px solid crimson;
+border-radius: 6px 6px 2px 2px;
+}

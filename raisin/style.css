@@ -1,0 +1,63 @@
+h1{
+font-family: sans-serif;
+text-align: center;
+color: cornflowerblue;
+margin-bottom: 5px
+}
+
+h2{
+font-family: sans-serif;
+text-align: center;
+font-size: 18px;
+color: skyblue;
+margin-top: 0px
+}
+p{
+font-family: sans-serif;
+text-align: center;
+font-size: 20px;
+}
+
+.boutons{
+display: flex;
+justify-content: center;
+gap: 30px;
+
+}
+
+.boutonRejouer{
+display: flex;
+justify-content: center;
+gap: 10px;
+
+}
+button {
+border: solid skyblue;
+background-color: skyblue;
+family-font: helvetica;
+width: fit-content;
+border-radius: 5px;
+font-size: 20px;
+}
+
+button:hover {
+background-color: deepskyblue;
+border-color: deepskyblue;
+cursor: pointer;
+}
+body {
+background-color: lightcyan
+}
+
+#tas {
+text-align: center;
+}
+
+.allumette {
+display: inline-block;
+width: 10px;
+height: 80px;
+margin: 0 4px;
+background-color: burlywood;
+border-top: 14px solid crimson;
+border-radius: 6px 6px 2px 2px;

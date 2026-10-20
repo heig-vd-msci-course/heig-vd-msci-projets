@@ -1,0 +1,58 @@
+body {
+font-family: Helvetica, serif;
+text-align: center;
+background-color: lightblue;
+color: #493344;
+padding: 30px;
+}
+
+h1 {
+color: darkblue;
+font-family: Aria, serif;
+}
+
+h2 {
+font-size: 22px;
+}
+
+#tas {
+margin: 30px 0;
+}
+.allumette {
+display: inline-block;
+width: 8px;
+height: 60px;
+margin: 5px 4px;
+background-color: burlywood;
+border-top: 14px solid #e84a8a;
+border-radius: 6px 6px 2px 2px;
+}
+
+button {
+background-color: blue;
+color: white;
+border: none;
+border-radius: 8px;
+padding: 12px 18px;
+margin: 5px;
+font-size: 16px;
+cursor: pointer;
+}
+
+button:hover {
+background-color: blueviolet;
+}
+
+button:disabled {
+background-color: royalblue;
+cursor: default;
+}
+
+#rejouer {
+background-color: blueviolet;
+margin-top: 20px;
+}
+
+#rejouer:hover {
+background-color: blue;
+}
