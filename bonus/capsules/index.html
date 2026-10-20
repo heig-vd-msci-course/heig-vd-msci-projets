@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opération capsules</title>
+  <style>
+    :root {
+      --red: #ff6b6b;
+      --teal: #2a9d95;
+      --ink: #222;
+      --muted: #777;
+      --bg: #fafafa;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+    header { padding: 1.5rem 1rem 0.5rem; text-align: center; }
+    h1 { margin: 0; color: var(--red); }
+    header p { margin: 0.4rem 0 0; color: var(--teal); }
+    a.back { position: absolute; top: 1rem; left: 1rem; color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+    a.back:hover { color: var(--red); }
+    main { max-width: 960px; margin: 0 auto; padding: 1rem; }
+    .stage { position: relative; }
+    canvas { display: block; width: 100%; height: auto; border-radius: 0.5rem; touch-action: none; cursor: crosshair; background: #f4efe6; }
+    .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.8rem; padding: 1rem; border-radius: 0.5rem; background: rgba(250, 250, 250, 0.92); text-align: center; }
+    .overlay[hidden] { display: none; }
+    .overlay h2 { margin: 0; color: var(--red); }
+    .overlay p { margin: 0; max-width: 34rem; line-height: 1.5; }
+    .overlay button { padding: 0.6rem 1.4rem; border: 0; border-radius: 0.4rem; background: var(--red); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+    .help { margin: 0.8rem 0 0; color: var(--muted); font-size: 0.9rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <a class="back" href="../../">← Projets</a>
+  <header>
+    <h1>Opération capsules</h1>
+    <p>Recycler ses capsules, oui. Se faire voir, non.</p>
+  </header>
+  <main>
+    <div class="stage">
+      <canvas id="game" width="960" height="540"></canvas>
+
+      <div class="overlay" id="start">
+        <h2>Opération capsules</h2>
+        <p>Pendant que M. Guidoux écrit au tableau, lancer discrètement ses capsules de café dans la <strong>poubelle de recyclage</strong> (1 point) ou, pour les plus audacieuses, dans <strong>sa tasse</strong> (3 points).</p>
+        <p>Tirer la catapulte vers l'arrière, viser, relâcher. Mais attention : s'il se retourne et voit une capsule en vol ou la catapulte armée, c'est raté. Un <strong>?</strong> au-dessus de sa tête annonce qu'il va se retourner.</p>
+        <button id="startBtn">C'est parti</button>
+      </div>
+
+      <div class="overlay" id="end" hidden>
+        <h2 id="endTitle">Catapulte confisquée !</h2>
+        <p id="endText"></p>
+        <button id="againBtn">Rejouer</button>
+      </div>
+    </div>
+    <p class="help">Souris ou doigt : appuyer sur la catapulte, tirer vers l'arrière, relâcher.</p>
+  </main>
+
+  <script>
+    // ============================================================
+    // Opération capsules : catapulte, physique simple, et un enseignant
+    // qui se retourne au mauvais moment.
+    // ============================================================
+
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const W = 960;
+    const H = 540;
+
+    // Canevas net sur les écrans haute densité
+    const DPR = window.devicePixelRatio || 1;
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    ctx.scale(DPR, DPR);
+
+    // ---------- Décor (coordonnées du canevas) ----------
+    const FLOOR = 470;
+    const ANCHOR = { x: 130, y: 360 };     // point de départ des capsules
+    const MAX_PULL = 120;                  // tirage maximal (px)
+    const POWER = 7.6;                     // vitesse (px/s) par px de tirage
+    const GRAVITY = 1300;                  // px/s²
+    const BOARD = { x: 600, y: 60, w: 320, h: 200 };
+    const DESK = { x: 540, y: 372, w: 170, h: 98 };
+    const MUG = { x: 670, y: 340, w: 30, h: 32 };
+    const TEACHER = { x: 800, feet: FLOOR };
+    const TEACHER_BOX = { x: TEACHER.x - 32, y: FLOOR - 200, w: 64, h: 200 };
+    const BIN_W = 64;
+    const BIN_H = 62;
+    const CAPSULE_COLORS = ["#c9a227", "#6a3d9a", "#1f1f1f", "#c0392b", "#2c6fbb", "#2e8b57", "#d35400"];
+    const BOARD_LINES = [
+      "let allumettes = 20;",
+      "if (allumettes <= 0) {",
+      "  perdu();",
+      "}",
+      "for (let i = 0; i < 3; i++)",
+      "  allumettes--;"
+    ];
+
+    // ---------- État du jeu ----------
+    let state;
+
+    function newState() {
+      return {
+        running: false,
+        score: 0,
+        lives: 3,
+        capsules: [],
+        popups: [],
+        aiming: false,
+        pull: { x: 0, y: 0 },
+        cooldown: 0,
+        binX: 400,
+        teacher: { mode: "writing", timer: 3, writeTime: 0, line: 0, chars: 0, flash: 0 },
+        best: loadBest()
+      };
+    }
+
+    function loadBest() {
+      try {
+        return Number(localStorage.getItem("capsules-best")) || 0;
+      } catch (e) {
+        return 0;
+      }
+    }
+
+    function saveBest(value) {
+      try {
+        localStorage.setItem("capsules-best", String(value));
+      } catch (e) {
+        // Navigation privée : le record n'est pas gardé
+      }
+    }
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function moveBin() {
+      state.binX = rand(300, DESK.x - BIN_W - 20);
+    }
+
+    // ---------- L'enseignant ----------
+    // writing (dos tourné) → warning (« ? ») → looking (face à la classe) → writing...
+    function writingDuration() {
+      const s = state.score;
+      return rand(Math.max(1.3, 2.4 - 0.06 * s), Math.max(2.2, 4.8 - 0.1 * s));
+    }
+
+    function warningDuration() {
+      return Math.max(0.35, 0.8 - 0.02 * state.score);
+    }
+
+    function updateTeacher(dt) {
+      const t = state.teacher;
+      t.timer -= dt;
+      if (t.flash > 0) t.flash -= dt;
+
+      if (t.mode === "writing") {
+        // Il écrit, un caractère après l'autre
+        t.writeTime += dt;
+        if (t.writeTime > 0.12) {
+          t.writeTime = 0;
+          t.chars++;
+          if (t.chars > BOARD_LINES[t.line % BOARD_LINES.length].length + 4) {
+            t.chars = 0;
+            t.line++;
+          }
+        }
+        if (t.timer <= 0) {
+          t.mode = "warning";
+          t.timer = warningDuration();
+        }
+      } else if (t.mode === "warning") {
+        if (t.timer <= 0) {
+          t.mode = "looking";
+          t.timer = rand(1.3, 2.3);
+        }
+      } else if (t.mode === "looking") {
+        const flying = state.capsules.some(c => c.flying);
+        const armed = state.aiming && Math.hypot(state.pull.x, state.pull.y) > 15;
+        if (flying || armed) {
+          caught("Je vous ai vu !");
+        } else if (t.timer <= 0) {
+          t.mode = "writing";
+          t.timer = writingDuration();
+        }
+      } else if (t.mode === "angry") {
+        if (t.timer <= 0) {
+          t.mode = "writing";
+          t.timer = writingDuration();
+        }
+      }
+    }
+
+    function caught(text) {
+      const t = state.teacher;
+      if (t.mode === "angry") return;
+      state.lives--;
+      state.aiming = false;
+      state.capsules = state.capsules.filter(c => !c.flying);
+      t.mode = "angry";
+      t.timer = 1.6;
+      t.flash = 0.4;
+      t.say = text;
+      if (state.lives <= 0) {
+        setTimeout(endGame, 900);
+      }
+    }
+
+    // ---------- Les capsules ----------
+    function launch() {
+      const power = Math.min(Math.hypot(state.pull.x, state.pull.y), MAX_PULL);
+      // Pas de tir tant qu'il est fâché : il regarde encore la classe
+      if (power < 12 || state.cooldown > 0 || state.teacher.mode === "angry") return;
+      const angle = Math.atan2(-state.pull.y, -state.pull.x);
+      state.capsules.push({
+        x: ANCHOR.x,
+        y: ANCHOR.y,
+        vx: Math.cos(angle) * power * POWER,
+        vy: Math.sin(angle) * power * POWER,
+        spin: rand(-12, 12),
+        angle: 0,
+        color: CAPSULE_COLORS[Math.floor(Math.random() * CAPSULE_COLORS.length)],
+        flying: true,
+        life: 1.2
+      });
+      state.cooldown = 0.35;
+    }
+
+    function score(points, x, y) {
+      state.score += points;
+      state.popups.push({ x, y, text: "+" + points, life: 1 });
+      if (points === 1) moveBin();
+    }
+
+    // Entrée par le haut d'une ouverture (poubelle ou tasse)
+    function enters(c, prevY, box) {
+      return prevY < box.y && c.y >= box.y && c.x > box.x + 4 && c.x < box.x + box.w - 4;
+    }
+
+    function updateCapsules(dt) {
+      const bin = { x: state.binX, y: FLOOR - BIN_H, w: BIN_W, h: BIN_H };
+      for (const c of state.capsules) {
+        if (!c.flying) {
+          c.life -= dt;
+          continue;
+        }
+        const prevY = c.y;
+        c.vy += GRAVITY * dt;
+        c.x += c.vx * dt;
+        c.y += c.vy * dt;
+        c.angle += c.spin * dt;
+
+        if (c.vy > 0 && enters(c, prevY, MUG)) {
+          score(3, MUG.x + MUG.w / 2, MUG.y);
+          c.done = true;
+        } else if (c.vy > 0 && enters(c, prevY, bin)) {
+          score(1, bin.x + bin.w / 2, bin.y);
+          c.done = true;
+        } else if (c.x > TEACHER_BOX.x && c.x < TEACHER_BOX.x + TEACHER_BOX.w && c.y > TEACHER_BOX.y && c.y < FLOOR) {
+          caught("Aïe ! Qui a fait ça ?");
+          c.done = true;
+        } else if (c.y > bin.y && c.y < FLOOR && c.x > bin.x - 3 && c.x < bin.x + bin.w + 3) {
+          // Rebond sur la paroi de la poubelle
+          c.vx *= -0.35;
+          c.x = c.x < bin.x + bin.w / 2 ? bin.x - 4 : bin.x + bin.w + 4;
+        } else if (prevY < DESK.y && c.y >= DESK.y && c.x > DESK.x && c.x < DESK.x + DESK.w) {
+          // Atterrit sur le bureau
+          c.y = DESK.y - 4;
+          c.flying = false;
+        } else if (c.y >= FLOOR - 4) {
+          c.y = FLOOR - 4;
+          c.flying = false;
+        } else if (c.x > W + 20 || c.x < -20) {
+          c.done = true;
+        }
+      }
+      state.capsules = state.capsules.filter(c => !c.done && c.life > 0);
+    }
+
+    // ---------- Dessin ----------
+    function drawCapsule(x, y, angle, color, scale = 1) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(-9, -6);
+      ctx.lineTo(9, -6);
+      ctx.lineTo(6, 6);
+      ctx.lineTo(-6, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#bbb";
+      ctx.fillRect(-11, -8, 22, 3);
+      ctx.restore();
+    }
+
+    function drawRoom() {
+      ctx.fillStyle = "#f4efe6";
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#d9c7a8";
+      ctx.fillRect(0, FLOOR, W, H - FLOOR);
+
+      // Tableau blanc et ce qu'il y écrit
+      ctx.fillStyle = "#888";
+      ctx.fillRect(BOARD.x - 6, BOARD.y - 6, BOARD.w + 12, BOARD.h + 12);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(BOARD.x, BOARD.y, BOARD.w, BOARD.h);
+      ctx.fillStyle = "#2c6fbb";
+      ctx.font = "15px ui-monospace, monospace";
+      const t = state.teacher;
+      const first = Math.max(0, t.line - 5);
+      for (let i = first; i <= t.line; i++) {
+        const text = BOARD_LINES[i % BOARD_LINES.length];
+        const shown = i === t.line ? text.slice(0, t.chars) : text;
+        ctx.fillText(shown, BOARD.x + 14, BOARD.y + 28 + (i - first) * 28);
+      }
+
+      // Bureau de l'enseignant, tasse et plaque
+      ctx.fillStyle = "#8b5a2b";
+      ctx.fillRect(DESK.x, DESK.y, DESK.w, 14);
+      ctx.fillRect(DESK.x + 8, DESK.y + 14, 12, DESK.h - 14);
+      ctx.fillRect(DESK.x + DESK.w - 20, DESK.y + 14, 12, DESK.h - 14);
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = "#555";
+      ctx.lineWidth = 2;
+      ctx.fillRect(MUG.x, MUG.y, MUG.w, MUG.h);
+      ctx.strokeRect(MUG.x, MUG.y, MUG.w, MUG.h);
+      ctx.beginPath();
+      ctx.arc(MUG.x + MUG.w + 6, MUG.y + 15, 7, -Math.PI / 2, Math.PI / 2);
+      ctx.stroke();
+      ctx.fillStyle = "#ff6b6b";
+      ctx.font = "bold 9px system-ui";
+      ctx.fillText("PROF", MUG.x + 3, MUG.y + 20);
+      ctx.fillStyle = "#222";
+      ctx.fillRect(DESK.x + 20, DESK.y - 18, 76, 18);
+      ctx.fillStyle = "#fff";
+      ctx.font = "11px system-ui";
+      ctx.fillText("M. Guidoux", DESK.x + 26, DESK.y - 5);
+
+      // Poubelle de recyclage
+      const bx = state.binX;
+      ctx.fillStyle = "#2a9d95";
+      ctx.beginPath();
+      ctx.moveTo(bx, FLOOR - BIN_H);
+      ctx.lineTo(bx + BIN_W, FLOOR - BIN_H);
+      ctx.lineTo(bx + BIN_W - 6, FLOOR);
+      ctx.lineTo(bx + 6, FLOOR);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 22px system-ui";
+      ctx.fillText("♻", bx + BIN_W / 2 - 9, FLOOR - 22);
+    }
+
+    function drawTeacher() {
+      const t = state.teacher;
+      const x = TEACHER.x;
+      const facing = t.mode === "looking" || t.mode === "angry";
+      const top = FLOOR - 200;
+
+      // Jambes et corps
+      ctx.fillStyle = "#34495e";
+      ctx.fillRect(x - 22, FLOOR - 80, 18, 80);
+      ctx.fillRect(x + 4, FLOOR - 80, 18, 80);
+      ctx.fillStyle = t.mode === "angry" && t.flash > 0 ? "#ff6b6b" : "#2a9d95";
+      ctx.fillRect(x - 30, top + 52, 60, 72);
+
+      // Bras : il écrit au tableau, ou les bras croisés quand il regarde
+      ctx.strokeStyle = ctx.fillStyle;
+      ctx.lineWidth = 12;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      if (facing) {
+        ctx.moveTo(x - 26, top + 70);
+        ctx.lineTo(x + 20, top + 92);
+        ctx.moveTo(x + 26, top + 70);
+        ctx.lineTo(x - 20, top + 92);
+      } else {
+        const wobble = t.mode === "writing" ? Math.sin(performance.now() / 90) * 6 : 0;
+        ctx.moveTo(x - 24, top + 64);
+        ctx.lineTo(x - 52 + wobble, top + 18);
+        ctx.moveTo(x + 26, top + 66);
+        ctx.lineTo(x + 30, top + 118);
+      }
+      ctx.stroke();
+
+      // Tête
+      const headX = x + (t.mode === "warning" ? -6 : 0);
+      ctx.fillStyle = "#f1c27d";
+      ctx.beginPath();
+      ctx.arc(headX, top + 28, 24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#4a3426";
+      if (facing) {
+        // Cheveux sur le dessus, lunettes, bouche
+        ctx.beginPath();
+        ctx.arc(headX, top + 22, 24, Math.PI, 0);
+        ctx.fill();
+        ctx.strokeStyle = "#222";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(headX - 9, top + 30, 7, 0, Math.PI * 2);
+        ctx.moveTo(headX + 16, top + 30);
+        ctx.arc(headX + 9, top + 30, 7, 0, Math.PI * 2);
+        ctx.moveTo(headX - 2, top + 30);
+        ctx.lineTo(headX + 2, top + 30);
+        ctx.stroke();
+        ctx.beginPath();
+        if (t.mode === "angry") {
+          ctx.arc(headX, top + 46, 6, Math.PI, 0);
+        } else {
+          ctx.moveTo(headX - 6, top + 43);
+          ctx.lineTo(headX + 6, top + 43);
+        }
+        ctx.stroke();
+      } else {
+        // De dos : on ne voit que les cheveux
+        ctx.beginPath();
+        ctx.arc(headX, top + 26, 24, Math.PI * 0.85, Math.PI * 2.15);
+        ctx.fill();
+      }
+
+      // Bulles
+      if (t.mode === "warning") {
+        bubble(x - 10, top - 18, "?");
+      } else if (t.mode === "angry") {
+        bubble(x - 80, top - 18, t.say);
+      }
+    }
+
+    function bubble(x, y, text) {
+      ctx.font = "bold 16px system-ui";
+      const w = ctx.measureText(text).width + 20;
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(x - w / 2, y - 22, w, 30, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#222";
+      ctx.fillText(text, x - w / 2 + 10, y - 2);
+    }
+
+    function drawCatapult() {
+      // Pupitre
+      ctx.fillStyle = "#a0703f";
+      ctx.fillRect(40, 420, 190, 14);
+      ctx.fillRect(52, 434, 12, FLOOR - 434);
+      ctx.fillRect(206, 434, 12, FLOOR - 434);
+
+      // Socle et bras de la catapulte
+      ctx.fillStyle = "#6b4423";
+      ctx.fillRect(100, 400, 70, 20);
+      const pull = state.aiming ? state.pull : { x: 0, y: 0 };
+      const len = Math.min(Math.hypot(pull.x, pull.y), MAX_PULL);
+      const angle = len > 0 ? Math.atan2(pull.y, pull.x) : 0;
+      const holder = { x: ANCHOR.x + Math.cos(angle) * len, y: ANCHOR.y + Math.sin(angle) * len };
+      ctx.strokeStyle = "#6b4423";
+      ctx.lineWidth = 8;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(135, 404);
+      ctx.lineTo(holder.x, holder.y);
+      ctx.stroke();
+      ctx.fillStyle = "#3e2a14";
+      ctx.beginPath();
+      ctx.arc(holder.x, holder.y, 10, 0, Math.PI * 2);
+      ctx.fill();
+      if (state.cooldown <= 0) {
+        drawCapsule(holder.x, holder.y - 2, 0, "#c9a227");
+      }
+
+      // Début de trajectoire, pour viser
+      if (state.aiming && len > 12) {
+        const a = Math.atan2(-pull.y, -pull.x);
+        const vx = Math.cos(a) * len * POWER;
+        const vy = Math.sin(a) * len * POWER;
+        ctx.fillStyle = "rgba(34, 34, 34, 0.35)";
+        for (let i = 1; i <= 6; i++) {
+          const tt = i * 0.05;
+          ctx.beginPath();
+          ctx.arc(ANCHOR.x + vx * tt, ANCHOR.y + vy * tt + 0.5 * GRAVITY * tt * tt, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    function drawHud() {
+      ctx.fillStyle = "#222";
+      ctx.font = "bold 20px system-ui";
+      ctx.fillText("Score : " + state.score, 20, 34);
+      ctx.font = "14px system-ui";
+      ctx.fillStyle = "#777";
+      ctx.fillText("Record : " + state.best, 20, 56);
+      for (let i = 0; i < 3; i++) {
+        drawCapsule(200 + i * 30, 28, 0, i < state.lives ? "#c0392b" : "#ddd", 1.1);
+      }
+      for (const p of state.popups) {
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = "#2a9d95";
+        ctx.font = "bold 24px system-ui";
+        ctx.fillText(p.text, p.x - 14, p.y - (1 - p.life) * 40);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function draw() {
+      drawRoom();
+      drawTeacher();
+      drawCatapult();
+      for (const c of state.capsules) {
+        ctx.globalAlpha = c.flying ? 1 : Math.max(0, c.life);
+        drawCapsule(c.x, c.y, c.angle, c.color);
+        ctx.globalAlpha = 1;
+      }
+      drawHud();
+    }
+
+    // ---------- Boucle ----------
+    let last = 0;
+    function frame(now) {
+      const dt = Math.min(0.033, (now - last) / 1000 || 0);
+      last = now;
+      if (state.running) {
+        if (state.cooldown > 0) state.cooldown -= dt;
+        updateTeacher(dt);
+        updateCapsules(dt);
+        for (const p of state.popups) p.life -= dt;
+        state.popups = state.popups.filter(p => p.life > 0);
+      }
+      draw();
+      requestAnimationFrame(frame);
+    }
+
+    // ---------- Commandes ----------
+    function toCanvas(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * (W / rect.width),
+        y: (event.clientY - rect.top) * (H / rect.height)
+      };
+    }
+
+    canvas.addEventListener("pointerdown", event => {
+      if (!state.running) return;
+      const p = toCanvas(event);
+      if (Math.hypot(p.x - ANCHOR.x, p.y - ANCHOR.y) < 110) {
+        state.aiming = true;
+        state.pull = { x: 0, y: 0 };
+        canvas.setPointerCapture(event.pointerId);
+      }
+    });
+
+    canvas.addEventListener("pointermove", event => {
+      if (!state.aiming) return;
+      const p = toCanvas(event);
+      let dx = p.x - ANCHOR.x;
+      let dy = p.y - ANCHOR.y;
+      const len = Math.hypot(dx, dy);
+      if (len > MAX_PULL) {
+        dx *= MAX_PULL / len;
+        dy *= MAX_PULL / len;
+      }
+      state.pull = { x: dx, y: dy };
+    });
+
+    function release() {
+      if (!state.aiming) return;
+      state.aiming = false;
+      launch();
+      state.pull = { x: 0, y: 0 };
+    }
+    canvas.addEventListener("pointerup", release);
+    canvas.addEventListener("pointercancel", () => { state.aiming = false; });
+
+    // ---------- Début et fin de partie ----------
+    function startGame() {
+      state = newState();
+      state.running = true;
+      state.teacher.timer = writingDuration();
+      moveBin();
+      document.getElementById("start").hidden = true;
+      document.getElementById("end").hidden = true;
+    }
+
+    function endGame() {
+      state.running = false;
+      const record = state.score > state.best;
+      if (record) {
+        state.best = state.score;
+        saveBest(state.score);
+      }
+      document.getElementById("endText").textContent =
+        "Score : " + state.score + (record ? " (nouveau record !)" : " · Record : " + state.best) +
+        ". M. Guidoux rend la catapulte demain. Peut-être.";
+      document.getElementById("end").hidden = false;
+      document.getElementById("againBtn").focus();
+    }
+
+    document.getElementById("startBtn").addEventListener("click", startGame);
+    document.getElementById("againBtn").addEventListener("click", startGame);
+
+    state = newState();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

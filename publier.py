@@ -140,11 +140,12 @@ def build_gallery(projects):
     .card {{ display: flex; flex-direction: column; gap: 0.4rem; padding: 1rem; border-radius: 0.5rem; background: #fff; border: 1px solid #ddd; color: inherit; text-decoration: none; }}
     .card:hover {{ border-color: #ff6b6b; }}
     .team {{ font-size: 0.85rem; color: #2a9d95; text-transform: uppercase; letter-spacing: 0.05em; }}
+    h1 a {{ color: inherit; text-decoration: none; cursor: text; }}
   </style>
 </head>
 <body>
   <header>
-    <h1>Projets MSCI 2026</h1>
+    <h1>Projets <a href="bonus/pendu/">MSCI</a> <a href="bonus/capsules/">2026</a></h1>
     <p>Algorithmique et programmation · {len(projects)} projet(s)</p>
   </header>
   <main>

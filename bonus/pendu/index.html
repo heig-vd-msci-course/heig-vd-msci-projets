@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Le pendu</title>
+  <style>
+    :root {
+      --red: #ff6b6b;
+      --teal: #2a9d95;
+      --ink: #222;
+      --muted: #777;
+      --line: #ddd;
+      --bg: #fafafa;
+      --card: #fff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+    header { padding: 1.5rem 1rem 0.5rem; text-align: center; }
+    h1 { margin: 0; color: var(--red); }
+    header p { margin: 0.4rem 0 0; color: var(--teal); }
+    a.back { position: absolute; top: 1rem; left: 1rem; color: var(--muted); text-decoration: none; font-size: 0.9rem; }
+    a.back:hover { color: var(--red); }
+    main { max-width: 720px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+    .stats { display: flex; gap: 1.5rem; color: var(--muted); font-size: 0.9rem; }
+    .stats strong { color: var(--ink); }
+    svg { width: 220px; height: 220px; }
+    svg .scaffold { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; fill: none; }
+    svg .part { stroke: var(--red); stroke-width: 5; stroke-linecap: round; fill: none; opacity: 0; transition: opacity 0.25s; }
+    svg .part.shown { opacity: 1; }
+    .word { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem 1.6rem; min-height: 3rem; }
+    .chunk { display: flex; gap: 0.35rem; }
+    .slot { width: 1.6rem; border-bottom: 3px solid var(--ink); text-align: center; font-size: 1.6rem; font-weight: 700; line-height: 2.2rem; }
+    .slot.symbol { border-bottom-color: transparent; }
+    .slot.missed { color: var(--red); }
+    .message { min-height: 1.6rem; font-weight: 600; text-align: center; }
+    .message.win { color: var(--teal); }
+    .message.lose { color: var(--red); }
+    .keyboard { display: flex; flex-direction: column; gap: 0.4rem; align-items: center; }
+    .row { display: flex; gap: 0.35rem; }
+    .key { width: 2.4rem; height: 2.6rem; border: 1px solid var(--line); border-radius: 0.4rem; background: var(--card); font: inherit; font-weight: 700; cursor: pointer; }
+    .key:hover:not(:disabled) { border-color: var(--red); }
+    .key:disabled { cursor: default; opacity: 0.35; }
+    .key.good { background: var(--teal); color: #fff; opacity: 1; border-color: var(--teal); }
+    .key.bad { background: var(--red); color: #fff; border-color: var(--red); opacity: 0.6; }
+    button.again { padding: 0.6rem 1.4rem; border: 0; border-radius: 0.4rem; background: var(--red); color: #fff; font: inherit; font-weight: 700; cursor: pointer; visibility: hidden; }
+    button.again.visible { visibility: visible; }
+    @media (max-width: 480px) {
+      .key { width: 1.9rem; height: 2.4rem; }
+      .slot { width: 1.25rem; font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+  <a class="back" href="../../">← Projets</a>
+  <header>
+    <h1>Le pendu</h1>
+    <p>Trouver le mot mystère avant d'être pendu</p>
+  </header>
+  <main>
+    <div class="stats">
+      <span>Trouvés : <strong id="wins">0</strong></span>
+      <span>Série : <strong id="streak">0</strong></span>
+      <span>Erreurs : <strong id="errors">0</strong> / 7</span>
+    </div>
+
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <path class="scaffold" d="M20 190 H120 M50 190 V20 H140" />
+      <path class="part" d="M140 20 V45" />
+      <circle class="part" cx="140" cy="62" r="17" />
+      <path class="part" d="M140 79 V130" />
+      <path class="part" d="M140 92 L115 112" />
+      <path class="part" d="M140 92 L165 112" />
+      <path class="part" d="M140 130 L120 165" />
+      <path class="part" d="M140 130 L160 165" />
+    </svg>
+
+    <div class="word" id="word" aria-live="polite"></div>
+    <div class="message" id="message"></div>
+    <div class="keyboard" id="keyboard"></div>
+    <button class="again" id="again">Mot suivant</button>
+  </main>
+
+  <script>
+    // Mots mystères : uniquement des titres de chansons. Lesquelles ? À vous de trouver.
+    const WORDS = [
+      "SICKO MODE", "GOOSEBUMPS", "ANTIDOTE", "BUTTERFLY EFFECT", "HIGHEST IN THE ROOM",
+      "STARGAZING", "CAROUSEL", "YOSEMITE", "ASTROTHUNDER", "SKELETONS", "COFFEE BEAN",
+      "WAKE UP", "NO BYSTANDERS", "STOP TRYING TO BE GOD", "CAN'T SAY", "WHO? WHAT!",
+      "HOUSTONFORNICATION", "MY EYES", "TELEKINESIS", "HYAENA", "THANK GOD", "MODERN JAM",
+      "FE!N", "DELRESTO", "TOPIA TWINS", "CIRCUS MAXIMUS", "GOD'S COUNTRY", "SIRENS",
+      "MELTDOWN", "LOST FOREVER", "SKITZO", "PARASAIL", "TIL FURTHER NOTICE", "MAFIA",
+      "FRANCHISE", "THE SCOTTS", "GATTI", "OUT WEST", "PORNOGRAPHY", "WASTED",
+      "NIGHTCRAWLER", "MAMACITA", "THE ENDS", "WAY BACK", "COORDINATE",
+      "THROUGH THE LATE NIGHT", "SWEET SWEET", "OUTSIDE", "FIRST TAKE",
+      "PICK UP THE PHONE", "GUIDANCE", "WONDERFUL", "UPPER ECHELON", "QUINTANA"
+    ];
+    const MAX_ERRORS = 7;
+    const ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN"];
+
+    const parts = document.querySelectorAll("svg .part");
+    const wordEl = document.getElementById("word");
+    const messageEl = document.getElementById("message");
+    const keyboardEl = document.getElementById("keyboard");
+    const againBtn = document.getElementById("again");
+
+    let deck = [];
+    let word = "";
+    let found = new Set();
+    let errors = 0;
+    let over = false;
+    let stats = loadStats();
+
+    function loadStats() {
+      try {
+        return JSON.parse(localStorage.getItem("pendu-stats")) || { wins: 0, streak: 0 };
+      } catch (e) {
+        return { wins: 0, streak: 0 };
+      }
+    }
+
+    function saveStats() {
+      try {
+        localStorage.setItem("pendu-stats", JSON.stringify(stats));
+      } catch (e) {
+        // Navigation privée : les statistiques ne sont pas gardées
+      }
+    }
+
+    function isLetter(ch) {
+      return ch >= "A" && ch <= "Z";
+    }
+
+    // Tirage sans répétition tant que tous les mots n'ont pas été joués
+    function nextWord() {
+      if (deck.length === 0) {
+        deck = WORDS.slice();
+        for (let i = deck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+      }
+      return deck.pop();
+    }
+
+    function buildKeyboard() {
+      keyboardEl.innerHTML = "";
+      for (const row of ROWS) {
+        const rowEl = document.createElement("div");
+        rowEl.className = "row";
+        for (const letter of row) {
+          const key = document.createElement("button");
+          key.className = "key";
+          key.textContent = letter;
+          key.dataset.letter = letter;
+          key.addEventListener("click", () => guess(letter));
+          rowEl.appendChild(key);
+        }
+        keyboardEl.appendChild(rowEl);
+      }
+    }
+
+    function render() {
+      wordEl.innerHTML = "";
+      for (const chunk of word.split(" ")) {
+        const chunkEl = document.createElement("div");
+        chunkEl.className = "chunk";
+        for (const ch of chunk) {
+          const slot = document.createElement("span");
+          slot.className = "slot";
+          if (!isLetter(ch)) {
+            slot.classList.add("symbol");
+            slot.textContent = ch;
+          } else if (found.has(ch)) {
+            slot.textContent = ch;
+          } else if (over) {
+            slot.textContent = ch;
+            slot.classList.add("missed");
+          }
+          chunkEl.appendChild(slot);
+        }
+        wordEl.appendChild(chunkEl);
+      }
+      parts.forEach((part, i) => part.classList.toggle("shown", i < errors));
+      document.getElementById("errors").textContent = errors;
+      document.getElementById("wins").textContent = stats.wins;
+      document.getElementById("streak").textContent = stats.streak;
+    }
+
+    function guess(letter) {
+      if (over) return;
+      const key = keyboardEl.querySelector(`[data-letter="${letter}"]`);
+      if (!key || key.disabled) return;
+      key.disabled = true;
+
+      if (word.includes(letter)) {
+        found.add(letter);
+        key.classList.add("good");
+      } else {
+        errors++;
+        key.classList.add("bad");
+      }
+
+      const allFound = [...word].every(ch => !isLetter(ch) || found.has(ch));
+      if (allFound) {
+        over = true;
+        stats.wins++;
+        stats.streak++;
+        messageEl.textContent = "Bravo, mot trouvé !";
+        messageEl.className = "message win";
+      } else if (errors >= MAX_ERRORS) {
+        over = true;
+        stats.streak = 0;
+        messageEl.textContent = "Perdu ! Le mot était affiché ci-dessus.";
+        messageEl.className = "message lose";
+      }
+      if (over) {
+        saveStats();
+        againBtn.classList.add("visible");
+        againBtn.focus();
+      }
+      render();
+    }
+
+    function newGame() {
+      word = nextWord();
+      found = new Set();
+      errors = 0;
+      over = false;
+      messageEl.textContent = "";
+      messageEl.className = "message";
+      againBtn.classList.remove("visible");
+      buildKeyboard();
+      render();
+    }
+
+    document.addEventListener("keydown", event => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const letter = event.key.toUpperCase();
+      if (letter.length === 1 && isLetter(letter)) {
+        guess(letter);
+      } else if (event.key === "Enter" && over && event.target !== againBtn) {
+        // Sur le bouton, Entrée déclenche déjà son clic
+        newGame();
+      }
+    });
+    againBtn.addEventListener("click", newGame);
+
+    newGame();
+  </script>
+</body>
+</html>
